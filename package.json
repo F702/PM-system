@@ -1,0 +1,44 @@
+{
+  "name": "manager-project-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run build:api && node dist/api/api/main.js",
+    "dev:web": "vite",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "vite build",
+    "build:api": "tsc -p tsconfig.api.json",
+    "start": "node dist/api/api/main.js",
+    "check": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.api.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@vueuse/core": "^13.7.0",
+    "argon2": "^0.44.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "element-plus": "^2.10.7",
+    "multer": "^2.0.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.3.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.0.5"
+  }
+}

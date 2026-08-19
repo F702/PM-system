@@ -1,0 +1,1 @@
+<template><div class="empty" style="border:0"><div style="font-size:120px;font-weight:800;letter-spacing:-8px">404</div><h1 class="title" style="font-size:30px">这个项目或页面不存在</h1><p>可能已更改地址。</p><RouterLink to="/" class="button primary">返回驾驶舱</RouterLink></div></template>
