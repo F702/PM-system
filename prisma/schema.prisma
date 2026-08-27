@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  DEMO
+  USER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ServiceType {
+  BIDDING
+  COST
+  SUPERVISION
+  OTHER
+}
+
+enum ImportStatus {
+  PREVIEW
+  IMPORTED
+  EXPIRED
+}
+
+model User {
+  id             String        @id @default(uuid()) @db.Uuid
+  username       String        @unique @db.VarChar(64)
+  passwordHash   String
+  role           UserRole      @default(USER)
+  disabledAt     DateTime?
+  failedAttempts Int           @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  sessions       Session[]
+  employees      Employee[]
+  clients        Client[]
+  projects       Project[]
+  imports        ImportBatch[]
+  auditEvents    AuditEvent[]
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique @db.Char(64)
+  userId     String   @db.Uuid
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Employee {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  name      String           @db.VarChar(120)
+  active    Boolean          @default(true)
+  note      String?          @db.VarChar(1000)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects  Project[]        @relation("ProjectOwner")
+  services  ProjectService[]
+
+  @@unique([userId, name])
+  @@index([userId, active])
+}
+
+model Client {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  name      String    @db.VarChar(180)
+  note      String?   @db.VarChar(1000)
+  disabled  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects  Project[]
+
+  @@unique([userId, name])
+  @@index([userId, disabled])
+}
+
+model Project {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @db.Uuid
+  name           String           @db.VarChar(240)
+  projectNo      String?          @db.VarChar(100)
+  clientId       String           @db.Uuid
+  ownerId        String           @db.Uuid
+  businessYear   Int
+  status         ProjectStatus
+  startDate      DateTime?        @db.Date
+  plannedEndDate DateTime?        @db.Date
+  actualEndDate  DateTime?        @db.Date
+  targetAmount   Decimal?         @db.Decimal(18, 2)
+  note           String?          @db.VarChar(4000)
+  lastReviewedAt DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client         Client           @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  owner          Employee         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  services       ProjectService[]
+  milestones     Milestone[]
+  contracts      Contract[]
+  documents      Document[]
+
+  @@unique([userId, projectNo])
+  @@index([userId, businessYear, status])
+  @@index([userId, clientId])
+}
+
+model ProjectService {
+  id               String      @id @default(uuid()) @db.Uuid
+  projectId        String      @db.Uuid
+  ownerId          String      @db.Uuid
+  serviceType      ServiceType
+  stage            String      @db.VarChar(160)
+  otherDescription String?     @db.VarChar(500)
+  plannedEndDate   DateTime?   @db.Date
+  actualEndDate    DateTime?   @db.Date
+  note             String?     @db.VarChar(2000)
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner            Employee    @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  milestones       Milestone[]
+
+  @@index([projectId, serviceType])
+}
+
+model Milestone {
+  id          String          @id @default(uuid()) @db.Uuid
+  projectId   String          @db.Uuid
+  serviceId   String?         @db.Uuid
+  name        String          @db.VarChar(240)
+  plannedDate DateTime        @db.Date
+  actualDate  DateTime?       @db.Date
+  critical    Boolean         @default(false)
+  note        String?         @db.VarChar(2000)
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  service     ProjectService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, plannedDate])
+}
+
+model Contract {
+  id                  String    @id @default(uuid()) @db.Uuid
+  projectId           String    @db.Uuid
+  contractNo          String    @db.VarChar(120)
+  amount              Decimal   @db.Decimal(18, 2)
+  signedDate          DateTime? @db.Date
+  expectedPaymentDate DateTime? @db.Date
+  note                String?   @db.VarChar(2000)
+  void                Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invoices            Invoice[]
+  payments            Payment[]
+
+  @@unique([projectId, contractNo])
+  @@index([projectId, void])
+}
+
+model Invoice {
+  id          String   @id @default(uuid()) @db.Uuid
+  contractId  String   @db.Uuid
+  invoiceNo   String   @db.VarChar(120)
+  invoiceDate DateTime @db.Date
+  amount      Decimal  @db.Decimal(18, 2)
+  note        String?  @db.VarChar(2000)
+  void        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, invoiceNo])
+  @@index([contractId, void])
+}
+
+model Payment {
+  id          String   @id @default(uuid()) @db.Uuid
+  contractId  String   @db.Uuid
+  paymentDate DateTime @db.Date
+  amount      Decimal  @db.Decimal(18, 2)
+  note        String?  @db.VarChar(2000)
+  void        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, void])
+}
+
+model Document {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @db.Uuid
+  category     String   @db.VarChar(32)
+  title        String   @db.VarChar(240)
+  originalName String   @db.VarChar(255)
+  mimeType     String   @db.VarChar(120)
+  size         Int
+  objectKey    String   @unique @db.VarChar(512)
+  checksum     String?  @db.Char(64)
+  isFinal      Boolean  @default(false)
+  hidden       Boolean  @default(false)
+  note         String?  @db.VarChar(2000)
+  createdAt    DateTime @default(now())
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, hidden])
+}
+
+model ImportBatch {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  originalName   String       @db.VarChar(255)
+  objectKey      String       @unique @db.VarChar(512)
+  rowsJson       Json
+  errorsJson     Json
+  status         ImportStatus @default(PREVIEW)
+  total          Int
+  validCount     Int
+  duplicateCount Int
+  importedCount  Int?
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, expiresAt])
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  action     String   @db.VarChar(80)
+  entityType String   @db.VarChar(80)
+  entityId   String   @db.VarChar(80)
+  beforeJson Json?
+  afterJson  Json?
+  ip         String?  @db.VarChar(64)
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId, createdAt])
+}

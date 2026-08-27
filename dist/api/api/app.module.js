@@ -8,12 +8,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
+const throttler_1 = require("@nestjs/throttler");
 const app_controller_1 = require("./app.controller");
-const database_service_1 = require("./domain/database.service");
 const manager_service_1 = require("./domain/manager.service");
+const cos_service_1 = require("./documents/cos.service");
+const prisma_service_1 = require("./database/prisma.service");
+const auth_service_1 = require("./auth/auth.service");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
-    (0, common_1.Module)({ controllers: [app_controller_1.AppController], providers: [database_service_1.DatabaseService, manager_service_1.ManagerService] })
+    (0, common_1.Module)({
+        imports: [throttler_1.ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])],
+        controllers: [app_controller_1.AppController],
+        providers: [prisma_service_1.PrismaService, auth_service_1.AuthService, manager_service_1.ManagerService, cos_service_1.CosService, { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard }]
+    })
 ], AppModule);

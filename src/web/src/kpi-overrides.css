@@ -1,0 +1,38 @@
+/* KPI cards are buttons for keyboard-accessible navigation, but visually match the original flat metric grid. */
+.kpis .kpi {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+
+.kpis .kpi:hover {
+  background: transparent;
+  transform: none;
+}
+
+.kpis .kpi:focus-visible {
+  outline: 3px solid rgba(200, 244, 61, .85);
+  outline-offset: -3px;
+}
+
+.kpis .kpi:last-child {
+  border-right: 0;
+}
+
+@media (max-width: 767px) {
+  .kpis .kpi:nth-child(odd) {
+    border-right: 1px solid var(--line);
+  }
+
+  .kpis .kpi:nth-child(even) {
+    border-right: 0;
+  }
+}

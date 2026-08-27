@@ -1,0 +1,26 @@
+[Unit]
+Description=Project Manager API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=projectmanager
+Group=projectmanager
+WorkingDirectory=/opt/project-manager/current
+EnvironmentFile=/opt/project-manager/shared/.env
+ExecStart=/usr/bin/node /opt/project-manager/current/dist/api/api/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/project-manager/shared
+MemoryMax=700M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
